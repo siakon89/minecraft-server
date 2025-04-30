@@ -5,7 +5,7 @@ locals {
   container_port = 25565
 
   # Minecraft related
-  whitelist_list = "<your Minecraft Username>"
+  whitelist_list = "<minecraft username>"
   difficulty     = "hard"
 
   # VPC

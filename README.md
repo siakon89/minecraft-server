@@ -1,7 +1,7 @@
 # minecraft-server
 This is the code fromt he blogpost: https://www.thelastdev.com/p/learning-ecs-the-fun-way-hosting
 
-You can run your own Minecraft server using ECS and Fargate, but this is not something that you can play in daily basis. This is way overpriced, and it's purpose is to understand ECS and it's components.
+I have adjusted the code to decrease the cost of the minecraft server in ECS. This should cost approximately $26 per month.
 
 ## Deploying
 To deploy the ECS and the Minecraft server, you can do the following:
@@ -16,7 +16,7 @@ locals {
   container_port = 25565
 
   # Minecraft related
-  whitelist_list = "<yout Minecraft Username>"
+  whitelist_list = "<your Minecraft Username>"
   difficulty     = "hard"  # change difficulty if you want
 
   # VPC  - Feel free to change the CIDR block and subnets

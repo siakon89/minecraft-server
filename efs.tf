@@ -31,15 +31,15 @@ module "efs" {
   ]
 
   # Mount targets / security group
-  mount_targets              = { for k, v in zipmap(module.vpc.azs, module.vpc.private_subnets) : k => { subnet_id = v } }
+  mount_targets              = { for k, v in zipmap(module.vpc.azs, module.vpc.public_subnets) : k => { subnet_id = v } }
   security_group_description = "EFS security group for minecraft server"
   security_group_vpc_id      = module.vpc.vpc_id
 
   security_group_rules = {
     vpc = {
       # relying on the defaults provided for EFS/NFS (2049/TCP + ingress)
-      description = "NFS ingress from VPC private subnets"
-      cidr_blocks = module.vpc.private_subnets_cidr_blocks
+      description = "NFS ingress from VPC public subnets"
+      cidr_blocks = module.vpc.public_subnets_cidr_blocks
     }
   }
 

@@ -23,8 +23,11 @@ module "ecs" {
 
   services = {
     minecraft-vanilla = {
-      cpu    = 4096
-      memory = 8192
+      cpu    = 2048
+      memory = 4096
+
+      # Enable execute command
+      enable_execute_command = true
 
       volume = [
         {
@@ -42,9 +45,21 @@ module "ecs" {
         }
       ]
 
-      # Move to private subnets and remove public IP
-      assign_public_ip = false
-      subnet_ids       = module.vpc.private_subnets
+      # Move to public subnets
+      subnet_ids       = module.vpc.public_subnets
+      assign_public_ip = true
+
+      # Configure deployment strategy
+      deployment_circuit_breaker = {
+        enable   = true
+        rollback = true
+      }
+      deployment_controller = {
+        type = "ECS"
+      }
+      desired_count                      = 1
+      deployment_minimum_healthy_percent = 0
+      deployment_maximum_percent         = 100
 
       # Configure load balancer
       load_balancer = {
@@ -69,9 +84,9 @@ module "ecs" {
       container_definitions = {
 
         minecraft-vanilla-task = {
-          cpu    = 4096
-          memory = 8192
-          image  = "itzg/minecraft-server"
+          cpu    = 2048
+          memory = 4096
+          image  = "itzg/minecraft-server:latest"
 
           port_mappings = [
             {
@@ -94,6 +109,10 @@ module "ecs" {
             {
               name  = "DIFFICULTY"
               value = local.difficulty
+            },
+            {
+              name  = "ECS_ENABLE_CONTAINER_METADATA"
+              value = "true"
             }
           ]
 
@@ -124,6 +143,7 @@ module "ecs" {
   task_exec_iam_role_policies = {
     efs_access = aws_iam_policy.efs_access_policy.arn
     kms_access = aws_iam_policy.efs_kms_access_policy.arn
+    ssm_access = aws_iam_policy.ssm_session_manager_policy.arn
   }
 
   tags = {
@@ -174,8 +194,16 @@ resource "aws_security_group" "ecs_service" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    description = "SSM Session Manager"
-    cidr_blocks = ["0.0.0.0/0"] # SSM endpoints are AWS managed
+    description = "HTTPS for Docker Hub and SSM"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    description = "HTTP for Docker Hub"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
