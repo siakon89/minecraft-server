@@ -33,5 +33,12 @@ override.tf.json
 # example: *tfplan*
 
 # Ignore CLI configuration files
+.terraform
 .terraformrc
 terraform.rc
+.terraform.lock*
+
+# minecraft local testing
+data/
+.env
+Makefile
