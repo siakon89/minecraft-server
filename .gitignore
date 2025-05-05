@@ -41,4 +41,3 @@ terraform.rc
 # minecraft local testing
 data/
 .env
-Makefile
