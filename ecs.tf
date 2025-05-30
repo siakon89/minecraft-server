@@ -61,15 +61,6 @@ module "ecs" {
       deployment_minimum_healthy_percent = 0
       deployment_maximum_percent         = 100
 
-      # Configure load balancer
-      load_balancer = {
-        service = {
-          target_group_arn = module.nlb.target_groups["minecraft-vanilla"].arn
-          container_name   = "minecraft-vanilla-task"
-          container_port   = local.container_port
-        }
-      }
-
       # Use the dedicated security group
       security_group_ids = [aws_security_group.ecs_service.id]
 
@@ -82,7 +73,6 @@ module "ecs" {
 
       # Container definition(s)
       container_definitions = {
-
         minecraft-vanilla-task = {
           cpu    = 2048
           memory = 4096
@@ -132,12 +122,10 @@ module "ecs" {
           enable_execute_command = true
         }
       }
-
     }
   }
 
-
-  # Create task execution role and attach policies for EFS  create_task_exec_iam_role = true
+  # Create task execution role and attach policies for EFS
   create_task_exec_iam_role = true
   task_exec_iam_role_name   = "minecraft-exec-role"
   task_exec_iam_role_policies = {
@@ -148,7 +136,7 @@ module "ecs" {
 
   tags = {
     Environment = "Development"
-    Project     = "Example"
+    Project     = "Minecraft"
   }
 }
 
@@ -159,11 +147,11 @@ resource "aws_security_group" "ecs_service" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = local.container_port
-    to_port         = local.container_port
-    protocol        = "tcp"
-    description     = "Minecraft port from NLB"
-    security_groups = [aws_security_group.nlb.id]
+    from_port   = local.container_port
+    to_port     = local.container_port
+    protocol    = "tcp"
+    description = "Minecraft port from internet"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -175,41 +163,33 @@ resource "aws_security_group" "ecs_service" {
   }
 
   egress {
-    from_port       = local.container_port
-    to_port         = local.container_port
-    protocol        = "tcp"
-    description     = "Minecraft port to NLB"
-    security_groups = [aws_security_group.nlb.id]
-  }
-
-  egress {
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    description     = "NFS Port"
-    security_groups = [module.efs.security_group_id]
-  }
-
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    description = "HTTPS for Docker Hub and SSM"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    description = "HTTP for Docker Hub"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    description = "Allow all outbound traffic"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
     Name        = "minecraft-ecs-service-sg"
     Environment = "Development"
-    Project     = "Example"
+    Project     = "Minecraft"
   }
+}
+
+# Create Elastic IP for the Minecraft server
+resource "aws_eip" "minecraft" {
+  domain = "vpc"
+  tags = {
+    Name        = "minecraft-server-eip"
+    Environment = "Development"
+    Project     = "Minecraft"
+  }
+}
+
+# Associate the Elastic IP with the ECS task's ENI
+resource "aws_eip_association" "minecraft" {
+  allocation_id = aws_eip.minecraft.id
+  network_interface_id = module.ecs.services["minecraft-vanilla"].network_configuration[0].network_interface_id
 }
 
